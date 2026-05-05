@@ -1,13 +1,15 @@
-import { buildTravelAgent, buildUserMessage } from "@/frameworks/deepagent/agent";
+import {
+  buildResearchAgent,
+  buildUserMessage,
+} from "@/frameworks/deepagent/agent";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
 type Body = {
-  destination?: string;
-  days?: number;
-  preference?: string;
-  budget?: string;
+  product?: string;
+  audience?: string;
+  focus?: string;
 };
 
 export async function POST(req: Request) {
@@ -18,14 +20,13 @@ export async function POST(req: Request) {
     return jsonError("无效的 JSON 请求", 400);
   }
 
-  const destination = (body.destination ?? "").trim();
-  if (!destination) return jsonError("destination 不能为空", 400);
-  const days = Math.max(1, Math.min(10, Number(body.days) || 3));
-  const preference = (body.preference ?? "亲子 / 慢节奏").trim();
-  const budget = (body.budget ?? "中等").trim();
+  const product = (body.product ?? "").trim();
+  if (!product) return jsonError("product 不能为空", 400);
+  const audience = (body.audience ?? "投资人 / 产品负责人").trim();
+  const focus = (body.focus ?? "市场地位 + 财务画像").trim();
 
-  const agent = buildTravelAgent();
-  const userMessage = buildUserMessage({ destination, days, preference, budget });
+  const agent = buildResearchAgent();
+  const userMessage = buildUserMessage({ product, audience, focus });
 
   const encoder = new TextEncoder();
 
@@ -38,11 +39,11 @@ export async function POST(req: Request) {
       };
 
       try {
-        send({ type: "start", destination, days, preference, budget });
+        send({ type: "start", product, audience, focus });
 
         const eventStream = await agent.stream(
           { messages: [{ role: "user", content: userMessage }] },
-          { streamMode: "updates", recursionLimit: 60 },
+          { streamMode: "updates", recursionLimit: 80 },
         );
 
         for await (const update of eventStream) {

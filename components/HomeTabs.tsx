@@ -21,7 +21,7 @@ export default function HomeTabs() {
           key: "langchain",
           label: (
             <span>
-              <ApiOutlined /> LangChain · LCEL 链
+              <ApiOutlined /> LangChain · LCEL 多阶段
             </span>
           ),
           children: <LangChainDemo />,
@@ -30,7 +30,7 @@ export default function HomeTabs() {
           key: "langgraph",
           label: (
             <span>
-              <BranchesOutlined /> LangGraph · 反思状态图
+              <BranchesOutlined /> LangGraph · 双 Agent 辩论
             </span>
           ),
           children: <LangGraphDemo />,
@@ -39,7 +39,7 @@ export default function HomeTabs() {
           key: "deepagent",
           label: (
             <span>
-              <ClusterOutlined /> DeepAgent · 多智能体规划
+              <ClusterOutlined /> DeepAgent · 6 子 agent 调研
             </span>
           ),
           children: <DeepAgentDemo />,

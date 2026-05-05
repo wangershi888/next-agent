@@ -5,9 +5,9 @@
 
 | Tab | 框架 | 凸显特性 | 演示主题 |
 | --- | --- | --- | --- |
-| 1 | **LangChain** (LCEL) | Prompt → LLM → Parser 的 `.pipe()` 链式组合，结构化输出 | 电影推荐 |
-| 2 | **LangGraph** | StateGraph、条件边形成循环、节点级流式 | 反思式短文写作（带评分循环） |
-| 3 | **DeepAgent** | 规划工具 + 子 Agent + 文件系统 + 详细 System Prompt | 多智能体旅行规划师 |
+| 1 | **LangChain** (LCEL) | 极简串行流水线 + 题量可配 + 上下文传递 + 结构化输出 | 串行面试官（profile → angles → N 轮 Q→A→S → 决策，N 默认 3） |
+| 2 | **LangGraph** | StateGraph、双 Agent 独立状态、条件边循环、节点级流式 | 红蓝队辩论赛（多轮反驳 → 逐轮判分 → 终局判决） |
+| 3 | **DeepAgent** | 自主规划 / 自主路由 / 自主迭代 / 自我反思（开放式 prompt + record_decision 外化判断） | 竞品调研报告代理（agent 自己决定调谁 / 跳过谁 / 重调几次） |
 
 ## 目录结构
 
@@ -79,12 +79,18 @@ npm run dev
 ## 三个 demo 的演讲口径建议
 
 1. **LangChain (LCEL)**：定位是"组件库 + 编排原语"，主打 `.pipe()` 串联。
-   适合做一次性、线性的链式任务。看演示时重点指出：左上角的 `Prompt | LLM | Parser` 流水线、右侧 3 张电影卡片是 Zod 强类型解析出来的。
+   demo 切成「画像 → 考察角度 → N 轮 Q→A→S → 决策」的**完全串行**流水线（题量 N 前端可配 1-5）。
+   每个 Runnable 只做一件极简的事、schema 只 1-2 个字段，前段输出直接喂给后段。
+   作答时把所有历史问答喂回去，出题时把已出过题目喂回去——LCEL「前段输出=后段输入」的灵魂所在。
+   横向 Steps 进度条让"链路一段一段亮起来"非常直观，N=3 时一共 12 个可观察 LLM 调用。
 2. **LangGraph**：定位是"状态机引擎"，是 LangChain 之上、更接近真实 agent 控制流的一层。
-   重点演示：`generate ↔ critique` 循环，分数没到目标就回到生成节点；右侧的步骤条 + 多张迭代卡片说明状态在每轮都在累计。
-3. **DeepAgent**：定位是"开箱即用的复杂 agent harness"，是 LangGraph 之上的更高层抽象。
-   把"规划工具 / 子 Agent / 文件系统 / 详细系统提示"四件套打包好，让你专注业务而不用自己写循环。
-   重点演示：左侧 TODO 面板自我更新、活动流里出现紫色 `task(...)` 时是子 Agent 接管、最后 `trip-plan.md` 出现在文件面板。
+   重点演示：红蓝队各自维护独立的状态线，`red_argue → blue_argue → judge → decide` 形成循环，
+   `decide` 是真正的条件边——未到终轮回到 `red_argue`，到了就走 `verdict` 出最终判决。
+   每轮内容因为「咬」对方上一轮的具体论点而真正发散，不会出现「每轮内容大同小异」的反思 demo 通病。
+3. **DeepAgent**：定位是"开箱即用的复杂 agent harness"。这版 demo 是「**自主决策版竞品调研代理**」——
+   SYSTEM_PROMPT 故意**没有「第一步、第二步」的脚本**，只给目标 / 资源 / 价值观 / 十字路口；
+   agent 自己决定要调哪几个 sub-agent / 跳过谁 / fact-check 后是修订还是重调，且每个分叉点必须用 `record_decision` 把判断外化。
+   重点演示：① 「决策时刻」面板按时间轴展开 agent 的思考链路；② sub-agent 卡片上的 `×2` Badge 表示该专家被 agent 决定重调（质量驱动循环）；③ 显示「未调用 (可能被跳过)」的卡说明 agent 主动跳过；④ `fact-check 轮数 × N` Tag 显示真实的迭代次数。
 
 ## License
 

@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import {
   Alert,
+  Avatar,
   Button,
   Card,
   Col,
@@ -12,75 +13,128 @@ import {
   Row,
   Space,
   Spin,
-  Steps,
+  Statistic,
   Tag,
   Typography,
   message,
 } from "antd";
 import {
+  CrownTwoTone,
+  FireOutlined,
   LoadingOutlined,
   PlayCircleOutlined,
   RightOutlined,
+  ThunderboltOutlined,
 } from "@ant-design/icons";
 
 const { Title, Paragraph, Text } = Typography;
+const { TextArea } = Input;
 
-type Critique = { score: number; feedback: string };
-type IterationLog = {
-  iteration: number;
-  draft?: string;
-  critique?: Critique;
+type Tone = "calm" | "fierce" | "sarcastic" | "passionate";
+
+type DebateTurn = {
+  side: "red" | "blue";
+  round: number;
+  rebuttal: string;
+  points: string[];
+  emotional_tone: Tone;
+};
+
+type DebateJudgment = {
+  round: number;
+  redScore: number;
+  blueScore: number;
+  comment: string;
+};
+
+type DebateVerdict = {
+  winner: "red" | "blue" | "draw";
+  finalRedScore: number;
+  finalBlueScore: number;
+  commentary: string;
 };
 
 type RouteEvent =
-  | { type: "start"; topic: string; maxIterations: number; targetScore: number }
+  | {
+      type: "start";
+      topic: string;
+      redStance: string;
+      blueStance: string;
+      maxRounds: number;
+    }
   | { type: "node"; node: string; payload: any }
   | { type: "end" }
   | { type: "error"; error: string };
 
-const PRESETS = ["量子纠缠", "Transformer 注意力机制", "为什么天空是蓝色的"];
+const PRESETS = [
+  {
+    label: "AI 是否会让程序员失业？",
+    topic: "AI 是否会让大部分初中级程序员在 5 年内失业？",
+    red: "5 年内 AI 会替代大部分初中级程序员的日常 coding 工作",
+    blue: "AI 只是工具，初中级程序员依然不可替代",
+  },
+  {
+    label: "远程办公 vs 回办公室",
+    topic: "公司应不应该强制员工每周 5 天到岗？",
+    red: "全员每周 5 天到岗，能让协作效率最大化",
+    blue: "强制 5 天到岗弊大于利，应保留至少 2 天远程",
+  },
+  {
+    label: "通用 AI vs 垂直 AI",
+    topic: "未来 5 年是通用大模型赢，还是垂直行业小模型赢？",
+    red: "通用大模型会一统江湖，垂直小模型只是过渡",
+    blue: "垂直小模型会在大量行业把通用模型按在地上摩擦",
+  },
+];
 
 export default function LangGraphDemo() {
-  const [topic, setTopic] = useState(PRESETS[0]);
-  const [maxIterations, setMaxIterations] = useState(3);
-  const [targetScore, setTargetScore] = useState(8);
+  const [topic, setTopic] = useState(PRESETS[0].topic);
+  const [redStance, setRedStance] = useState(PRESETS[0].red);
+  const [blueStance, setBlueStance] = useState(PRESETS[0].blue);
+  const [maxRounds, setMaxRounds] = useState(3);
+
   const [running, setRunning] = useState(false);
-  const [iterations, setIterations] = useState<IterationLog[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [currentNode, setCurrentNode] = useState<string | null>(null);
+
+  const [redTurns, setRedTurns] = useState<DebateTurn[]>([]);
+  const [blueTurns, setBlueTurns] = useState<DebateTurn[]>([]);
+  const [judgments, setJudgments] = useState<DebateJudgment[]>([]);
+  const [verdict, setVerdict] = useState<DebateVerdict | null>(null);
+
   const abortRef = useRef<AbortController | null>(null);
 
   function reset() {
-    setIterations([]);
     setError(null);
     setDone(false);
+    setCurrentNode(null);
+    setRedTurns([]);
+    setBlueTurns([]);
+    setJudgments([]);
+    setVerdict(null);
   }
 
   function applyEvent(ev: RouteEvent) {
     if (ev.type === "node") {
-      const { node, payload } = ev;
-      if (node === "generate") {
-        const newDraft: string = (payload?.drafts ?? []).slice(-1)[0] ?? "";
-        const iterNum: number = payload?.iteration ?? 0;
-        setIterations((prev) => [
-          ...prev,
-          { iteration: iterNum, draft: newDraft },
-        ]);
-      } else if (node === "critique") {
-        const c: Critique | undefined = (payload?.critiques ?? []).slice(-1)[0];
-        if (c) {
-          setIterations((prev) => {
-            const copy = [...prev];
-            const last = copy[copy.length - 1];
-            if (last) last.critique = c;
-            return copy;
-          });
-        }
+      setCurrentNode(ev.node);
+      const p = ev.payload ?? {};
+      if (Array.isArray(p.redTurns) && p.redTurns.length > 0) {
+        setRedTurns((prev) => [...prev, ...p.redTurns]);
       }
+      if (Array.isArray(p.blueTurns) && p.blueTurns.length > 0) {
+        setBlueTurns((prev) => [...prev, ...p.blueTurns]);
+      }
+      if (Array.isArray(p.judgments) && p.judgments.length > 0) {
+        setJudgments((prev) => [...prev, ...p.judgments]);
+      }
+      if (p.verdict) setVerdict(p.verdict);
     } else if (ev.type === "end") {
       setDone(true);
+      setCurrentNode(null);
     } else if (ev.type === "error") {
       setError(ev.error);
+      setCurrentNode(null);
     }
   }
 
@@ -93,10 +147,9 @@ export default function LangGraphDemo() {
       const resp = await fetch("/api/langgraph", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, maxIterations, targetScore }),
+        body: JSON.stringify({ topic, redStance, blueStance, maxRounds }),
         signal: controller.signal,
       });
-
       if (!resp.body) throw new Error("No response body");
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
@@ -113,11 +166,8 @@ export default function LangGraphDemo() {
           const json = line.slice(5).trim();
           if (!json) continue;
           try {
-            const ev: RouteEvent = JSON.parse(json);
-            applyEvent(ev);
-          } catch {
-            // ignore parse error
-          }
+            applyEvent(JSON.parse(json));
+          } catch {}
         }
       }
     } catch (err) {
@@ -136,64 +186,88 @@ export default function LangGraphDemo() {
     setRunning(false);
   }
 
-  const lastIter = iterations[iterations.length - 1];
-  const finalScore = lastIter?.critique?.score ?? 0;
+  // 把红蓝双方按 round 配成一行一行的「对决」
+  const rounds = Array.from(
+    { length: Math.max(redTurns.length, blueTurns.length) },
+    (_, i) => i + 1,
+  ).map((round) => ({
+    round,
+    red: redTurns.find((t) => t.round === round),
+    blue: blueTurns.find((t) => t.round === round),
+    judgment: judgments.find((j) => j.round === round),
+  }));
+
+  const totalRed = judgments.reduce((s, j) => s + j.redScore, 0);
+  const totalBlue = judgments.reduce((s, j) => s + j.blueScore, 0);
 
   return (
     <div className="demo-card">
       <Title level={4} style={{ marginTop: 0 }}>
-        反思式短文生成器 · StateGraph + 条件边
+        红蓝队辩论赛 · StateGraph + 双 Agent + 条件边
       </Title>
       <Paragraph type="secondary" style={{ marginTop: -4 }}>
-        模型先写草稿，编辑给出评分和建议，
-        <Text strong>分数不达标就回到 generate 节点继续改</Text>
-        ，直到达标或用完次数。 这是 LangGraph 最经典的「Reflection」范式，凸显
-        <Text code>条件边形成循环</Text>
-        这一关键能力。
+        红蓝双方各自维护独立论点链，<Text strong>每一轮必须先反驳对方再立论</Text>
+        ，judge 节点逐轮打分，<Text code>条件边</Text>{" "}
+        在「轮次未满 → red_argue」和「已满 → verdict」间路由。
+        因为两个 agent 在「咬」对方上一轮的具体论点，每轮内容会真正发散。
       </Paragraph>
 
       <div className="flow-pipeline" style={{ marginBottom: 16 }}>
         <Tag>START</Tag>
         <RightOutlined className="flow-arrow" />
-        <Tag color="blue">generate</Tag>
+        <Tag color="red">red_argue</Tag>
         <RightOutlined className="flow-arrow" />
-        <Tag color="purple">critique</Tag>
+        <Tag color="blue">blue_argue</Tag>
+        <RightOutlined className="flow-arrow" />
+        <Tag color="purple">judge</Tag>
         <RightOutlined className="flow-arrow" />
         <Tag color="orange">decide (条件边)</Tag>
         <RightOutlined className="flow-arrow" />
-        <Tag>END</Tag>
+        <Tag color="gold">verdict</Tag>
         <Text type="secondary" style={{ marginLeft: 12 }}>
-          decide 不达标会回到 generate ⤴
+          decide 不到终轮 ↺ red_argue
         </Text>
       </div>
 
       <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
-        <Col xs={24} md={12}>
-          <Text>主题</Text>
+        <Col xs={24}>
+          <Text>辩题</Text>
           <Input
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            placeholder="例如：量子纠缠"
+            placeholder="例如：AI 是否会让程序员失业？"
             style={{ marginTop: 4 }}
           />
         </Col>
-        <Col xs={12} md={6}>
-          <Text>最大迭代次数</Text>
+        <Col xs={24} md={11}>
+          <Text strong style={{ color: "#cf1322" }}>
+            红方立场（正方）
+          </Text>
+          <TextArea
+            rows={2}
+            value={redStance}
+            onChange={(e) => setRedStance(e.target.value)}
+            style={{ marginTop: 4 }}
+          />
+        </Col>
+        <Col xs={24} md={11}>
+          <Text strong style={{ color: "#1677ff" }}>
+            蓝方立场（反方）
+          </Text>
+          <TextArea
+            rows={2}
+            value={blueStance}
+            onChange={(e) => setBlueStance(e.target.value)}
+            style={{ marginTop: 4 }}
+          />
+        </Col>
+        <Col xs={24} md={2}>
+          <Text>轮次</Text>
           <InputNumber
             min={1}
             max={5}
-            value={maxIterations}
-            onChange={(v) => setMaxIterations(Number(v) || 1)}
-            style={{ display: "block", width: "100%", marginTop: 4 }}
-          />
-        </Col>
-        <Col xs={12} md={6}>
-          <Text>目标分数 (1-10)</Text>
-          <InputNumber
-            min={1}
-            max={10}
-            value={targetScore}
-            onChange={(v) => setTargetScore(Number(v) || 8)}
+            value={maxRounds}
+            onChange={(v) => setMaxRounds(Number(v) || 3)}
             style={{ display: "block", width: "100%", marginTop: 4 }}
           />
         </Col>
@@ -202,12 +276,16 @@ export default function LangGraphDemo() {
       <Space wrap style={{ marginBottom: 16 }}>
         {PRESETS.map((p) => (
           <Tag
-            key={p}
+            key={p.label}
             color="blue"
             style={{ cursor: "pointer" }}
-            onClick={() => setTopic(p)}
+            onClick={() => {
+              setTopic(p.topic);
+              setRedStance(p.red);
+              setBlueStance(p.blue);
+            }}
           >
-            {p}
+            {p.label}
           </Tag>
         ))}
         {!running ? (
@@ -215,14 +293,19 @@ export default function LangGraphDemo() {
             type="primary"
             icon={<PlayCircleOutlined />}
             onClick={run}
-            disabled={!topic.trim()}
+            disabled={!topic.trim() || !redStance.trim() || !blueStance.trim()}
           >
-            运行 Graph
+            开始辩论
           </Button>
         ) : (
           <Button danger icon={<LoadingOutlined />} onClick={stop}>
             运行中 · 点击中止
           </Button>
+        )}
+        {currentNode && (
+          <Tag color="processing" icon={<LoadingOutlined spin />}>
+            正在执行节点：{currentNode}
+          </Tag>
         )}
       </Space>
 
@@ -230,7 +313,8 @@ export default function LangGraphDemo() {
         <Alert type="error" showIcon message={error} style={{ marginTop: 8 }} />
       )}
 
-      {running && iterations.length === 0 && (
+      {/* 辩论时间线 */}
+      {rounds.length === 0 && running && (
         <Card
           size="small"
           style={{
@@ -241,104 +325,250 @@ export default function LangGraphDemo() {
         >
           <Spin
             indicator={<LoadingOutlined spin />}
-            tip="正在唤醒 LangGraph，等待 generate 节点输出第一稿…"
+            tip="正在唤醒辩论图，红方即将开篇立论…"
           >
             <div style={{ height: 48 }} />
           </Spin>
         </Card>
       )}
 
-      {iterations.length > 0 && (
+      {rounds.length > 0 && (
         <>
-          <Steps
-            current={iterations.length - (done ? 0 : 1)}
-            size="small"
-            style={{ marginBottom: 16 }}
-            items={iterations.map((it) => ({
-              title: `第 ${it.iteration} 轮`,
-              description: it.critique
-                ? `评分 ${it.critique.score}`
-                : "writing...",
-              status: it.critique
-                ? it.critique.score >= targetScore
-                  ? "finish"
-                  : "process"
-                : "process",
-            }))}
-          />
-          <Row gutter={[16, 16]}>
-            {iterations.map((it) => (
-              <Col xs={24} md={12} key={it.iteration}>
-                <Card
-                  size="small"
-                  title={
+          {/* 总分头条 */}
+          {judgments.length > 0 && (
+            <Row
+              gutter={16}
+              style={{ marginBottom: 16 }}
+              align="middle"
+              justify="center"
+            >
+              <Col>
+                <Statistic
+                  title={<Text style={{ color: "#cf1322" }}>红方累计</Text>}
+                  value={totalRed}
+                  valueStyle={{
+                    color: totalRed >= totalBlue ? "#cf1322" : "#999",
+                    fontWeight: 700,
+                  }}
+                  prefix={<FireOutlined />}
+                />
+              </Col>
+              <Col>
+                <Text type="secondary" style={{ fontSize: 24 }}>
+                  vs
+                </Text>
+              </Col>
+              <Col>
+                <Statistic
+                  title={<Text style={{ color: "#1677ff" }}>蓝方累计</Text>}
+                  value={totalBlue}
+                  valueStyle={{
+                    color: totalBlue >= totalRed ? "#1677ff" : "#999",
+                    fontWeight: 700,
+                  }}
+                  prefix={<ThunderboltOutlined />}
+                />
+              </Col>
+            </Row>
+          )}
+
+          {rounds.map(({ round, red, blue, judgment }) => (
+            <Card
+              key={round}
+              size="small"
+              style={{ marginBottom: 16 }}
+              title={
+                <Space>
+                  <Tag color="default">第 {round} 轮</Tag>
+                  {judgment && (
+                    <Tag
+                      color={
+                        judgment.redScore > judgment.blueScore
+                          ? "red"
+                          : judgment.blueScore > judgment.redScore
+                            ? "blue"
+                            : "default"
+                      }
+                    >
+                      本轮：红 {judgment.redScore} vs 蓝 {judgment.blueScore}
+                    </Tag>
+                  )}
+                </Space>
+              }
+            >
+              <Row gutter={[16, 16]}>
+                <SideCol turn={red} side="red" round={round} />
+                <SideCol turn={blue} side="blue" round={round} />
+              </Row>
+              {judgment ? (
+                <Alert
+                  type="info"
+                  showIcon
+                  style={{ marginTop: 12 }}
+                  message={
                     <Space>
-                      <Tag color="blue">迭代 {it.iteration}</Tag>
-                      {it.critique && (
-                        <Tag
-                          color={
-                            it.critique.score >= targetScore ? "green" : "gold"
-                          }
-                        >
-                          评分 {it.critique.score}/10
-                        </Tag>
-                      )}
+                      <span>裁判判词</span>
+                      <Progress
+                        percent={(judgment.redScore / 10) * 100}
+                        size="small"
+                        strokeColor="#cf1322"
+                        showInfo={false}
+                        style={{ width: 80 }}
+                      />
+                      <Text type="secondary">/</Text>
+                      <Progress
+                        percent={(judgment.blueScore / 10) * 100}
+                        size="small"
+                        strokeColor="#1677ff"
+                        showInfo={false}
+                        style={{ width: 80 }}
+                      />
                     </Space>
                   }
-                >
-                  <Paragraph
-                    style={{ whiteSpace: "pre-wrap", marginBottom: 12 }}
-                  >
-                    {it.draft || (
-                      <Space>
-                        <LoadingOutlined spin />
-                        <Text type="secondary">generate 节点写作中…</Text>
-                      </Space>
-                    )}
-                  </Paragraph>
-                  {it.critique ? (
-                    <Alert
-                      type={
-                        it.critique.score >= targetScore ? "success" : "warning"
-                      }
-                      showIcon
-                      message={
-                        <Space>
-                          编辑反馈
-                          <Progress
-                            percent={it.critique.score * 10}
-                            size="small"
-                            style={{ width: 120 }}
-                            showInfo={false}
-                          />
-                        </Space>
-                      }
-                      description={it.critique.feedback}
-                    />
-                  ) : (
-                    <Space>
-                      <LoadingOutlined spin />
-                      <Text type="secondary">critique 节点点评中…</Text>
-                    </Space>
-                  )}
-                </Card>
-              </Col>
-            ))}
-          </Row>
-          {done && (
+                  description={judgment.comment}
+                />
+              ) : red && blue ? (
+                <Alert
+                  type="warning"
+                  showIcon
+                  icon={<LoadingOutlined spin />}
+                  style={{ marginTop: 12 }}
+                  message="judge 节点正在打分…"
+                />
+              ) : null}
+            </Card>
+          ))}
+
+          {verdict && (
+            <Card
+              size="small"
+              style={{
+                marginTop: 8,
+                borderColor:
+                  verdict.winner === "red"
+                    ? "#cf1322"
+                    : verdict.winner === "blue"
+                      ? "#1677ff"
+                      : "#999",
+              }}
+              title={
+                <Space>
+                  <CrownTwoTone
+                    twoToneColor={
+                      verdict.winner === "red"
+                        ? "#cf1322"
+                        : verdict.winner === "blue"
+                          ? "#1677ff"
+                          : "#bfbfbf"
+                    }
+                  />
+                  <Text strong>
+                    最终判决：
+                    {verdict.winner === "red"
+                      ? "🔥 红方获胜"
+                      : verdict.winner === "blue"
+                        ? "⚡ 蓝方获胜"
+                        : "🤝 平局"}
+                  </Text>
+                  <Tag color="red">
+                    红 {verdict.finalRedScore}
+                  </Tag>
+                  <Tag color="blue">
+                    蓝 {verdict.finalBlueScore}
+                  </Tag>
+                </Space>
+              }
+            >
+              <Paragraph style={{ marginBottom: 0 }}>
+                {verdict.commentary}
+              </Paragraph>
+            </Card>
+          )}
+
+          {done && !verdict && (
             <Alert
               style={{ marginTop: 16 }}
-              type={finalScore >= targetScore ? "success" : "info"}
+              type="info"
               showIcon
-              message={
-                finalScore >= targetScore
-                  ? `🎯 达标！终稿评分 ${finalScore}/10`
-                  : `⏱️ 已用完 ${iterations.length} 轮迭代，终稿评分 ${finalScore}/10`
-              }
+              message="辩论已结束，但未收到 verdict 节点输出"
             />
           )}
         </>
       )}
     </div>
   );
+}
+
+function SideCol({
+  turn,
+  side,
+  round,
+}: {
+  turn?: DebateTurn;
+  side: "red" | "blue";
+  round: number;
+}) {
+  const color = side === "red" ? "#cf1322" : "#1677ff";
+  const bg = side === "red" ? "#fff1f0" : "#e6f4ff";
+  const label = side === "red" ? "红方" : "蓝方";
+
+  return (
+    <Col xs={24} md={12}>
+      <Card
+        size="small"
+        style={{
+          background: bg,
+          borderColor: color,
+          height: "100%",
+        }}
+        title={
+          <Space>
+            <Avatar
+              size={22}
+              style={{ background: color, verticalAlign: "middle" }}
+            >
+              {side === "red" ? "红" : "蓝"}
+            </Avatar>
+            <Text strong style={{ color }}>
+              {label} · 第 {round} 轮
+            </Text>
+            {turn && <Tag>{toneLabel(turn.emotional_tone)}</Tag>}
+          </Space>
+        }
+      >
+        {turn ? (
+          <>
+            <Paragraph
+              type="secondary"
+              style={{ fontSize: 12, marginBottom: 8, fontStyle: "italic" }}
+            >
+              ⤴ 反驳：{turn.rebuttal}
+            </Paragraph>
+            <ol style={{ paddingLeft: 18, margin: 0 }}>
+              {turn.points.map((p, i) => (
+                <li key={i} style={{ marginBottom: 4 }}>
+                  {p}
+                </li>
+              ))}
+            </ol>
+          </>
+        ) : (
+          <Space>
+            <LoadingOutlined spin style={{ color }} />
+            <Text type="secondary">{label}发言中…</Text>
+          </Space>
+        )}
+      </Card>
+    </Col>
+  );
+}
+
+function toneLabel(t: Tone) {
+  return t === "calm"
+    ? "🧊 冷静"
+    : t === "fierce"
+      ? "🔥 凌厉"
+      : t === "sarcastic"
+        ? "😏 嘲讽"
+        : "💥 激情";
 }

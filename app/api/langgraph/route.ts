@@ -1,11 +1,12 @@
-import { buildReflectionGraph } from "@/frameworks/langgraph/graph";
+import { buildDebateGraph } from "@/frameworks/langgraph/graph";
 
 export const runtime = "nodejs";
 
 type Body = {
   topic?: string;
-  maxIterations?: number;
-  targetScore?: number;
+  redStance?: string;
+  blueStance?: string;
+  maxRounds?: number;
 };
 
 export async function POST(req: Request) {
@@ -20,17 +21,20 @@ export async function POST(req: Request) {
   }
 
   const topic = (body.topic ?? "").trim();
-  if (!topic) {
-    return new Response(JSON.stringify({ error: "topic 不能为空" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+  const redStance = (body.redStance ?? "").trim();
+  const blueStance = (body.blueStance ?? "").trim();
+  if (!topic || !redStance || !blueStance) {
+    return new Response(
+      JSON.stringify({ error: "topic / redStance / blueStance 都不能为空" }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
+  const maxRounds = Math.max(1, Math.min(5, body.maxRounds ?? 3));
 
-  const maxIterations = Math.max(1, Math.min(5, body.maxIterations ?? 3));
-  const targetScore = Math.max(1, Math.min(10, body.targetScore ?? 8));
-
-  const graph = buildReflectionGraph();
+  const graph = buildDebateGraph();
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -42,11 +46,11 @@ export async function POST(req: Request) {
       };
 
       try {
-        send({ type: "start", topic, maxIterations, targetScore });
+        send({ type: "start", topic, redStance, blueStance, maxRounds });
 
         const eventStream = await graph.stream(
-          { topic, maxIterations, targetScore },
-          { streamMode: "updates" },
+          { topic, redStance, blueStance, maxRounds },
+          { streamMode: "updates", recursionLimit: 50 },
         );
 
         for await (const update of eventStream) {
