@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
-import "@ant-design/v5-patch-for-react-19";
+import "antd/dist/reset.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Agent Frameworks Demo · LangChain / LangGraph / DeepAgent",
-  description:
-    "三个对比 demo：LangChain LCEL、LangGraph 反思图、DeepAgent 多智能体规划",
+  title: "Next Agent Demos",
+  description: "多 Tab Agent 示例（Next.js + TypeScript + Ant Design）",
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="zh-CN">
       <body>
