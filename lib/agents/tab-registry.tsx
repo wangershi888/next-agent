@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { ArgumentAssistantTab } from "@/components/agents/ArgumentAssistantTab";
 import { LangChainChatTab } from "@/components/agents/LangChainChatTab";
 import { PlaceholderAgentTab } from "@/components/agents/PlaceholderAgentTab";
 import { TradingDecisionTab } from "@/components/agents/TradingDecisionTab";
@@ -21,6 +22,11 @@ export const agentTabs: AgentTabConfig[] = [
     key: "trading-agents",
     label: "多 Agent 交易决策",
     children: <TradingDecisionTab />,
+  },
+  {
+    key: "argument-assistant",
+    label: "论点编写助手（LangGraph）",
+    children: <ArgumentAssistantTab />,
   },
   {
     key: "more",

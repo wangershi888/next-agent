@@ -1,5 +1,6 @@
 import { buildTradingDecisionRunnable } from "@/frameworks/langchain/chains/trading-decision-chain";
 import type { TradingDecisionRequestBody } from "@/lib/types/chat";
+import { flushLangSmithPendingTraces } from "@/lib/observability/langsmith";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -114,6 +115,7 @@ export async function POST(req: Request) {
       } catch (err) {
         send({ type: "error", message: formatRouteError(err) });
       } finally {
+        await flushLangSmithPendingTraces();
         controller.close();
       }
     },

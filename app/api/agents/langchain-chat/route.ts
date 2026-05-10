@@ -1,5 +1,6 @@
 import { createLangChainChatAgent } from "@/frameworks/langchain/agents/langchain-chat-agent";
 import type { LangChainChatRequestBody } from "@/lib/types/chat";
+import { flushLangSmithPendingTraces } from "@/lib/observability/langsmith";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -114,6 +115,7 @@ export async function POST(req: Request) {
           send({ type: "error", message });
         } finally {
           await dispose();
+          await flushLangSmithPendingTraces();
           controller.close();
         }
       },

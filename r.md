@@ -1,16 +1,25 @@
 # 你是一个十年开发经验的前端工程师
 
-现在需要你使用next typescript antd 搭建一个多tab页面的项目
+你需要读取当前项目的结构，来继续接下来的工作
 
-其中，每个tab对应一个完整的agent demo 项目
+下载需要在当前项目中新添加一个tab demo
 
-需要你结合当前项目背景，搭建合适的项目结构
+新增的tab 使用langGraph 搭建一个多agent论点评分系统
 
-第一个tab：使用langchain(只使用langchain)搭建一个对话系统（形式类似于deepseek的对话页面）
+模型使用当前的阿里千问模型
 
-langchain的文档：https://docs.langchain.com/oss/javascript/langchain/overview
-需要使用到的api：createAget、 tool （此处只添加tavily联网搜索即可，可以在页面中有开关设置开启状态）、memory（需要记录对话上下文）
+详细需求如下：
 
-要求第一个tab只使用langchain创建
+设计一个“论点编写助手”的 Demo。且能完美涵盖 LangGraph 的所有高级特性，比如State NODE Edge
 
-llm 模型使用千问，具体的apikey放在.env文件中进行配置
+要突出 LangGraph.js 的特性，最核心的是演示它如何处理“循环（Cycles）”、“状态管理（State Management）”以及“人工干预（Human-in-the-loop）”。
+
+普通的 Chain 是线性的，而现实业务中，很多场景需要反复修改、反馈、审核。
+
+需要手动输入一个主题（需要默认给出几个主题，点击直接填入），然后负责写论点的agent开始写，写完后交给评分agent（分数支持用户自定义，默认为9分，满分10分），如果评分合格，则直接通过且输出通过建议，如果没通过，则给出建议，然后写论点的agent结合建议继续编写（防止多次重复输入，导致输出也大同小异），直到评分agent通过（类似的逻辑，具体的你可以结合实际情况帮我优化逻辑）,一定要避免死循环，且要突出langgraph的特性，论点输出文字不用太多，避免token浪费。
+
+要求：尽可能简单，只需要初始化2个agent即可，一个负责生成对应的内容，一个负责对对应的内容进行打分，生成的内容，以及打分提的建议都要求输出到页面中。一定要符合langGraph的开发规范
+
+langGraph参考链接：https://docs.langchain.com/oss/javascript/langgraph/overview
+
+开发完成后，在对应的readme.md中添加对使用的技术重点说明文档，比如api，思想等
