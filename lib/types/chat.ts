@@ -10,3 +10,7 @@ export interface LangChainChatRequestBody {
   messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
   enableWebSearch: boolean;
 }
+
+export interface TradingDecisionRequestBody {
+  stockCode: string;
+}

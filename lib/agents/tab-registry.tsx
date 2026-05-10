@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { LangChainChatTab } from "@/components/agents/LangChainChatTab";
 import { PlaceholderAgentTab } from "@/components/agents/PlaceholderAgentTab";
+import { TradingDecisionTab } from "@/components/agents/TradingDecisionTab";
 
 export interface AgentTabConfig {
   key: string;
@@ -15,6 +16,11 @@ export const agentTabs: AgentTabConfig[] = [
     key: "langchain-chat",
     label: "LangChain 对话",
     children: <LangChainChatTab />,
+  },
+  {
+    key: "trading-agents",
+    label: "多 Agent 交易决策",
+    children: <TradingDecisionTab />,
   },
   {
     key: "more",
