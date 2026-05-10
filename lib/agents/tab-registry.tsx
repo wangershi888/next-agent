@@ -2,8 +2,8 @@
 
 import type { ReactNode } from "react";
 import { ArgumentAssistantTab } from "@/components/agents/ArgumentAssistantTab";
+import { DeepAgentsChatTab } from "@/components/agents/DeepAgentsChatTab";
 import { LangChainChatTab } from "@/components/agents/LangChainChatTab";
-import { PlaceholderAgentTab } from "@/components/agents/PlaceholderAgentTab";
 import { TradingDecisionTab } from "@/components/agents/TradingDecisionTab";
 
 export interface AgentTabConfig {
@@ -13,6 +13,11 @@ export interface AgentTabConfig {
 }
 
 export const agentTabs: AgentTabConfig[] = [
+  {
+    key: "deep-agents-chat",
+    label: "Deep Agents 对话",
+    children: <DeepAgentsChatTab />,
+  },
   {
     key: "langchain-chat",
     label: "LangChain 对话",
@@ -27,15 +32,5 @@ export const agentTabs: AgentTabConfig[] = [
     key: "argument-assistant",
     label: "论点编写助手（LangGraph）",
     children: <ArgumentAssistantTab />,
-  },
-  {
-    key: "more",
-    label: "更多 Agent（占位）",
-    children: (
-      <PlaceholderAgentTab
-        title="更多 Agent Demo"
-        description="后续每个 Tab 可挂载独立的 Agent 示例工程；当前为占位页。"
-      />
-    ),
   },
 ];

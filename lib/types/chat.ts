@@ -38,3 +38,11 @@ export type ArgumentAssistantHumanFinalResume =
 export type ArgumentAssistantRequestBody =
   | ({ phase: "start" } & ArgumentAssistantStartBody)
   | ({ phase: "resume" } & ArgumentAssistantResumeBody);
+
+/** Deep Agents：流式对话（按 thread 持久化检查点） */
+export interface DeepChatRequestBody {
+  threadId: string;
+  /** 本轮用户输入（单条；历史在服务端检查点中） */
+  message: string;
+  enableWebSearch: boolean;
+}
