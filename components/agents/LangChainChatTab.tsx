@@ -21,7 +21,7 @@ export function LangChainChatTab() {
   const [messages, setMessages] = useState<UiChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [enableWebSearch, setEnableWebSearch] = useState(false);
+  const [enableWebSearch, setEnableWebSearch] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -178,9 +178,6 @@ export function LangChainChatTab() {
         >
           <Space>
             <Text strong>LangChain 对话</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              上下文由前端携带完整历史传入（会话记忆）
-            </Text>
           </Space>
           <Space>
             <span style={{ fontSize: 13 }}>

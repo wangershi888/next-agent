@@ -1,5 +1,9 @@
 import { createAgent } from "langchain";
 import { createQwenChatModel } from "../model/chat-models";
+import {
+  type ServerPuppeteerMcpHandle,
+  loadServerPuppeteerMcpTools,
+} from "../mcp/server-puppeteer-mcp";
 import { createTavilyWebSearchTool } from "../tools/web-search";
 
 export interface LangChainChatAgentOptions {
@@ -7,15 +11,32 @@ export interface LangChainChatAgentOptions {
   enableWebSearch: boolean;
 }
 
-export function createLangChainChatAgent(options: LangChainChatAgentOptions) {
+export interface LangChainChatAgentBundle {
+  agent: ReturnType<typeof createAgent>;
+  dispose: () => Promise<void>;
+}
+
+export async function createLangChainChatAgent(
+  options: LangChainChatAgentOptions,
+): Promise<LangChainChatAgentBundle> {
   const model = createQwenChatModel();
   const tavilyKey = process.env.TAVILY_API_KEY;
 
-  const tools =
+  const localTools =
     options.enableWebSearch && tavilyKey ? [createTavilyWebSearchTool(tavilyKey)] : [];
 
-  return createAgent({
+  const browserMcp: ServerPuppeteerMcpHandle = await loadServerPuppeteerMcpTools();
+  const mcpTools = browserMcp.tools;
+
+  const agent = createAgent({
     model,
-    tools,
+    tools: [...localTools, ...mcpTools],
   });
+
+  return {
+    agent,
+    dispose: async () => {
+      await browserMcp.close();
+    },
+  };
 }

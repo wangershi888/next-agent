@@ -46,7 +46,7 @@ export function createTavilyWebSearchTool(apiKey: string) {
     {
       name: "web_search",
       description:
-        "在互联网上检索最新信息。当用户问题涉及时效性、新闻、实时数据或你不确定的事实时使用。",
+        "在互联网上检索最新信息。当用户问题涉及时效性、新闻、实时数据，与时间日期相关的信息或你不确定的事实时使用。",
       schema: z.object({
         query: z.string().describe("面向搜索引擎的简短查询语句"),
       }),

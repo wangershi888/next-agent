@@ -4,6 +4,13 @@ import type { LangChainChatRequestBody } from "@/lib/types/chat";
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
+/** 约束助手对用户可见的正文为中文；不要求改写代码、路径或系统/工具原始报错文本 */
+const ASSISTANT_REPLY_ZH_SYSTEM = {
+  role: "system" as const,
+  content:
+    "请使用简体中文撰写对用户可见的回复。代码片段、标识符、文件路径、URL、以及工具输出或系统报错中的原文可保留原样，无需强行翻译成中文。",
+};
+
 function extractTextFromToken(token: unknown): string {
   if (token == null) return "";
   if (typeof token === "string") return token;
@@ -41,7 +48,7 @@ function summarizeToolActivity(updatePayload: unknown): string | null {
   }
 
   const name = kwargs.name as string | undefined;
-  if (name === "web_search") return "web_search";
+  if (name) return name;
 
   return null;
 }
@@ -60,7 +67,9 @@ export async function POST(req: Request) {
   }
 
   try {
-    const agent = createLangChainChatAgent({ enableWebSearch: Boolean(enableWebSearch) });
+    const { agent, dispose } = await createLangChainChatAgent({
+      enableWebSearch: Boolean(enableWebSearch),
+    });
     const encoder = new TextEncoder();
 
     const stream = new ReadableStream({
@@ -70,8 +79,10 @@ export async function POST(req: Request) {
         };
 
         try {
+          const messagesWithZhPrompt = [ASSISTANT_REPLY_ZH_SYSTEM, ...messages];
+
           const iterable = await agent.stream(
-            { messages },
+            { messages: messagesWithZhPrompt },
             { streamMode: ["messages", "updates"] as const },
           );
 
@@ -102,6 +113,7 @@ export async function POST(req: Request) {
           const message = err instanceof Error ? err.message : String(err);
           send({ type: "error", message });
         } finally {
+          await dispose();
           controller.close();
         }
       },
