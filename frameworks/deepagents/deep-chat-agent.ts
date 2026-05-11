@@ -1,6 +1,13 @@
-import { createDeepAgent, type SubAgent } from "deepagents";
+import {
+  CompositeBackend,
+  createDeepAgent,
+  FilesystemBackend,
+  StateBackend,
+  type SubAgent,
+} from "deepagents";
 import { createQwenChatModel } from "@/frameworks/langchain/model/chat-models";
-import { createTavilyWebSearchTool } from "@/frameworks/langchain/tools/web-search";
+import { createTavilyWebSearchTool } from "@/tools/web-search";
+import { BUNDLED_SKILLS_DISK_ROOT } from "./bundled-skills";
 import { deepChatCheckpointer } from "./deep-chat-checkpointer";
 
 export interface NextDeepChatAgentOptions {
@@ -41,6 +48,18 @@ export function createNextDeepChatAgent(options: NextDeepChatAgentOptions) {
     tools: webTools,
     subagents,
     skills: ["/skills/"],
+    /** `/skills/` 读磁盘（新增子目录即生效）；其余路径仍在 StateBackend，避免整盘暴露 */
+    backend: (config) =>
+      new CompositeBackend(new StateBackend(config), {
+        "/skills/": new FilesystemBackend({
+          rootDir: BUNDLED_SKILLS_DISK_ROOT,
+          virtualMode: true,
+        }),
+      }),
+    /** 禁止通过 write/edit 修改仓库内 Skill 文件 */
+    permissions: [
+      { operations: ["write"], paths: ["/skills/**"], mode: "deny" },
+    ],
     systemPrompt: DEEP_CHAT_SYSTEM_ZH,
     checkpointer: deepChatCheckpointer,
     name: "next-deep-chat",

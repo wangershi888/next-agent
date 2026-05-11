@@ -18,7 +18,7 @@ description: 指导如何发挥 Deep Agents 的规划、虚拟文件系统、子
 - 向子任务描述清楚目标、输出格式与停止条件。
 
 ## Skills
-- 本仓库在 `frameworks/deepagents/skills/<slug>/SKILL.md` 新增即会自动注入虚拟 `/skills/`，无需改 TypeScript 注册表。
+- 本仓库在 `.agents/skills/<slug>/SKILL.md`（可用 `npx skills add … -a deepagents` 安装）即会出现在虚拟 `/skills/`，无需改 TypeScript 注册表。
 - 仅当用户问题涉及本仓库架构时，加载 `next-agent-architecture`（`/skills/next-agent-architecture/`）。
 - 外出、天气、穿衣、限行、空气质量 → `outing-advice`（`/skills/outing-advice/`）。
 - 提示词、角色设定、Few-shot、输出格式调优 → `prompt-engineering`。

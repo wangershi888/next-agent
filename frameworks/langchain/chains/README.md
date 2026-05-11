@@ -1,6 +1,6 @@
 # 交易决策链路中的 LangChain / LCEL 知识点
 
-本文档对应实现文件：**`trading-decision-chain.ts`**，以及与工具相关的 **`frameworks/langchain/tools/eastmoney-tools.ts`**、模型 **`frameworks/langchain/model/chat-models.ts`**。
+本文档对应实现文件：**`trading-decision-chain.ts`**，以及与工具相关的 **`tools/eastmoney-tools.ts`**、模型 **`frameworks/langchain/model/chat-models.ts`**。
 
 ---
 
@@ -117,7 +117,7 @@ LCEL 是 LangChain 里用 **Runnable** 组合逻辑的方式：通过 **`pipe`**
 | 文件 | 说明 |
 |------|------|
 | `trading-decision-chain.ts` | LCEL 主链与各 Runnable 节点定义 |
-| `../tools/eastmoney-tools.ts` | `tool()` + Zod，供链内 `invoke` |
+| `tools/eastmoney-tools.ts` | `tool()` + Zod，供链内 `invoke` |
 | `../model/chat-models.ts` | `ChatOpenAI`（通义千问） |
 | `../../../app/api/agents/trading-decision/route.ts` | 按步骤 `invoke` 并 SSE 输出，便于观察每一步 |
 

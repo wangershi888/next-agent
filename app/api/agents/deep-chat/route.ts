@@ -1,5 +1,4 @@
 import { createNextDeepChatAgent } from "@/frameworks/deepagents/deep-chat-agent";
-import { buildBundledSkillFiles } from "@/frameworks/deepagents/bundled-skills";
 import type { DeepChatRequestBody } from "@/lib/types/chat";
 import { flushLangSmithPendingTraces } from "@/lib/observability/langsmith";
 
@@ -164,8 +163,6 @@ export async function POST(req: Request) {
         try {
           const input = {
             messages: [{ role: "user" as const, content: message }],
-            /** 每轮附带 Skills 虚拟文件，由状态合并；体量小，避免首轮失败后未注入 */
-            files: buildBundledSkillFiles(),
           };
 
           const iterable = await agent.stream(input as never, {

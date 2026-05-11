@@ -5,7 +5,7 @@ import {
   fetchEastmoneyStockNews,
   normalizeAshareCode,
   toEastmoneySecid,
-} from "../lib/eastmoney-client";
+} from "@/frameworks/langchain/lib/eastmoney-client";
 
 export function createEastmoneyStockNewsTool() {
   return tool(

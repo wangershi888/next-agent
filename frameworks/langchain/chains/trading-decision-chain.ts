@@ -9,7 +9,7 @@ import {
 import {
   createEastmoneyMarketDataTool,
   createEastmoneyStockNewsTool,
-} from "../tools/eastmoney-tools";
+} from "@/tools/eastmoney-tools";
 
 /**
  * 多 Agent 交易决策 — LangChain LCEL：
