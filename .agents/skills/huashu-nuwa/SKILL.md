@@ -46,7 +46,7 @@ description: |
 1. **这个人/主题是谁**：确保理解正确
 2. **聚焦方向**（可选）：全面画像 vs 聚焦某个维度？
 3. **用途**：思维顾问？决策参考？角色扮演？
-4. **新建 or 更新**：是否已有该人物的Skill？（检查 `.claude/skills/` 目录）
+4. **新建 or 更新**：是否已有该人物的Skill？（检查 `.agents/skills/` 目录）
 5. **本地语料**：「你手上有没有这个人的一手素材？比如书籍PDF、演讲/访谈transcript、视频字幕、个人博客导出等。有的话直接丢给我，比网上搜的质量高得多。」
 
 用户说「就做XX」没有更多信息 → 默认全面画像 + 思维顾问 + 无本地语料（走网络搜索），直接推进。
@@ -108,7 +108,7 @@ description: |
 - 不确定 → 推荐中同时包含两种类型，让用户选
 
 **来源A：本地已有Skill**
-扫描 `.claude/skills/*-perspective/` 目录，读取每个SKILL.md的description，匹配用户需求。已有Skill可以即插即用，不需要重新蒸馏。如果扫描结果为空（用户还没有任何perspective skill），跳过此步，只从来源B推荐。
+扫描 `.agents/skills/*-perspective/` 目录，读取每个SKILL.md的description，匹配用户需求。已有Skill可以即插即用，不需要重新蒸馏。如果扫描结果为空（用户还没有任何perspective skill），跳过此步，只从来源B推荐。
 
 **来源B：新蒸馏候选**
 基于需求维度表中的「思维框架方向」列，匹配最相关的人物或主题。推荐时说清楚：这个人的哪个思维框架能解决用户的具体问题。
@@ -141,7 +141,7 @@ description: |
 **收到确认后立即执行**，在调研之前完成：
 
 ```
-.claude/skills/[person-name]-perspective/
+.agents/skills/[person-name]-perspective/
 ├── SKILL.md                          # 最终产物
 ├── scripts/                          # 工具脚本（字幕下载/清洗/质量检查）
 └── references/
@@ -271,7 +271,7 @@ spawn subagent时，用以下结构给任务（以Agent 1著作为例）：
 
 #### 利用已安装的信息获取Skill
 
-Phase 1启动前，**主动扫描 `.claude/skills/` 目录**，检查是否有可用于信息获取的skill。如果有，在调研中优先调用，比WebSearch更稳定高效：
+Phase 1启动前，**主动扫描 `.agents/skills/` 目录**，检查是否有可用于信息获取的skill。如果有，在调研中优先调用，比WebSearch更稳定高效：
 
 | 已安装Skill | 用途 | 调用场景 |
 |------------|------|---------|
@@ -498,7 +498,7 @@ Phase 2提炼完成后，暂停展示提炼摘要给用户确认：
 构建完成后，读取 `references/extraction-framework.md` 末尾的「质量自检清单」，逐项检查。不通过的项标注出来，回到对应Phase修复。
 
 #### Step 4: 输出
-将完成的SKILL.md写入 `.claude/skills/[person-name]-perspective/SKILL.md`。
+将完成的SKILL.md写入 `.agents/skills/[person-name]-perspective/SKILL.md`。
 
 ---
 
