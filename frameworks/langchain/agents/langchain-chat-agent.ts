@@ -3,7 +3,7 @@ import { createQwenChatModel } from "../model/chat-models";
 import {
   type ServerPuppeteerMcpHandle,
   loadServerPuppeteerMcpTools,
-} from "../mcp/server-puppeteer-mcp";
+} from "@/tools/mcp/puppeteer-browser";
 import { createTavilyWebSearchTool } from "@/tools/web-search";
 
 export interface LangChainChatAgentOptions {

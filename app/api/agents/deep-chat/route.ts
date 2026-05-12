@@ -147,7 +147,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { agent } = createNextDeepChatAgent({
+    const { agent, dispose } = await createNextDeepChatAgent({
       enableWebSearch: Boolean(body.enableWebSearch),
     });
     const encoder = new TextEncoder();
@@ -246,6 +246,7 @@ export async function POST(req: Request) {
           const msg = err instanceof Error ? err.message : String(err);
           send({ type: "error", message: msg });
         } finally {
+          await dispose();
           await flushLangSmithPendingTraces();
           controller.close();
         }
